@@ -1,5 +1,7 @@
 """BUPA Sync Backend — Configuration management and orchestration layer."""
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -10,10 +12,21 @@ from routes.sync_status import router as sync_router
 from routes.audit import router as audit_router
 from routes.auth_routes import router as auth_router
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup: sync settings from DB to shared settings.json for agent container."""
+    from config import load_settings
+
+    load_settings()  # triggers _sync_settings_file
+    yield
+
+
 app = FastAPI(
     title="BUPA Sync Backend",
     description="Configuration management and orchestration layer for BUPA Sync local development environment",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # CORS — allow Vite dev server and alternative dev port

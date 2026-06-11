@@ -76,6 +76,15 @@ class Settings(BaseModel):
     qdrant: QdrantConfig = QdrantConfig()
 
 
+def _sync_settings_file(settings: Settings) -> None:
+    """Write settings to settings.json so the agent container can read them."""
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        SETTINGS_FILE.write_text(settings.model_dump_json(indent=2), encoding="utf-8")
+    except Exception:
+        pass  # Non-critical
+
+
 def load_settings() -> Settings:
     """Load settings from SQLite database. Falls back to settings.json migration.
 
@@ -86,7 +95,10 @@ def load_settings() -> Settings:
     raw = get_setting("app_settings", "")
     if raw:
         try:
-            return Settings(**json.loads(raw))
+            settings = Settings(**json.loads(raw))
+            # Sync to settings.json for agent container to read
+            _sync_settings_file(settings)
+            return settings
         except Exception:
             pass
 
@@ -136,10 +148,11 @@ def load_settings() -> Settings:
 
 
 def save_settings(settings: Settings, user: str = "system") -> None:
-    """Persist settings to SQLite database."""
+    """Persist settings to database and sync to shared settings.json for agent."""
     from database import set_setting
 
     set_setting("app_settings", settings.model_dump_json(), user=user)
+    _sync_settings_file(settings)
 
 
 def get_settings() -> Settings:
