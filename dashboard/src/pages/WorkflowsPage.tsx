@@ -158,8 +158,8 @@ export function WorkflowsPage() {
           </Button>
           <a
             href={settings.n8n.workflowId
-              ? `${settings.n8n.url}/workflow/${settings.n8n.workflowId}`
-              : settings.n8n.url}
+              ? `/n8n/workflow/${settings.n8n.workflowId}`
+              : '/n8n/'}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted transition-colors"
