@@ -51,7 +51,7 @@ async def login(request: Request):
         "response_type": "code",
         "client_id": settings.auth.client_id,
         "redirect_uri": redirect_uri,
-        "scope": "openid email profile",
+        "scope": "openid email profile groups",
         "state": state,
     }
     auth_url = (
