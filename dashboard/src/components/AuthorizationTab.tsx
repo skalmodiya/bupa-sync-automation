@@ -26,6 +26,7 @@ interface GroupMember {
 
 interface AuthzConfig {
   enabled: boolean;
+  scim_url: string;
   scim_user: string;
   scim_password: string;
   viewer_group: string;
@@ -39,6 +40,7 @@ export function AuthorizationTab() {
   const [groups, setGroups] = useState<IASGroup[]>([]);
   const [config, setConfig] = useState<AuthzConfig>({
     enabled: false,
+    scim_url: '',
     scim_user: '',
     scim_password: '',
     viewer_group: '',
@@ -172,10 +174,16 @@ export function AuthorizationTab() {
       <Card title="IAS SCIM API Credentials" description="Technical user credentials to read IAS groups and members (read-only access)">
         <div className="space-y-3">
           <Input
+            label="SCIM API URL"
+            value={config.scim_url}
+            onChange={(e) => setConfig({ ...config, scim_url: e.target.value })}
+            placeholder="https://your-tenant.accounts.ondemand.com/scim"
+          />
+          <Input
             label="SCIM User (System as Administrator ID)"
             value={config.scim_user}
             onChange={(e) => setConfig({ ...config, scim_user: e.target.value })}
-            placeholder="e.g. 1ab2cd3e-4f5g-6h7i-8j9k-0l1m2n3o4p5q"
+            placeholder="Username"
           />
           <Input
             label="SCIM Password"

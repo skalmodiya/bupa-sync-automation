@@ -57,6 +57,9 @@ class AuthorizationConfig(BaseModel):
     """Role-to-IAS-group mapping for access control."""
 
     enabled: bool = False  # When disabled, all authenticated users have full access
+    scim_url: str = (
+        ""  # SCIM API base URL (e.g. https://tenant.accounts.ondemand.com/scim)
+    )
     scim_user: str = ""  # SCIM API technical user (System as Administrator)
     scim_password: str = ""  # SCIM API password
     viewer_group: str = ""  # IAS group name for Viewer role

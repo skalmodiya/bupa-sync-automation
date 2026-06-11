@@ -151,7 +151,9 @@ def _scim_headers(settings: Settings) -> dict[str, str]:
 
 
 def _scim_base_url(settings: Settings) -> str:
-    """Get SCIM API base URL from IAS URL."""
+    """Get SCIM API base URL — uses dedicated URL if set, else derives from IAS URL."""
+    if settings.authorization.scim_url:
+        return settings.authorization.scim_url.rstrip("/")
     return settings.auth.ias_url.rstrip("/") + "/scim"
 
 
@@ -196,13 +198,13 @@ async def update_authz_config(payload: AuthorizationConfig, request: Request):
 @router.get("/groups")
 async def list_ias_groups(settings: Settings = Depends(get_settings)):
     """Fetch all IAS groups via SCIM API (read-only)."""
-    if not settings.auth.ias_url:
-        return {"error": "IAS not configured"}
+    if not settings.authorization.scim_url and not settings.auth.ias_url:
+        return {"error": "SCIM URL not configured. Enter the SCIM API URL."}
 
     url = _scim_base_url(settings) + "/Groups?count=100"
     headers = _scim_headers(settings)
     if not headers:
-        return {"error": "IAS credentials not configured"}
+        return {"error": "SCIM credentials not configured"}
 
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
@@ -231,8 +233,8 @@ async def list_ias_groups(settings: Settings = Depends(get_settings)):
 @router.get("/groups/{group_id}/members")
 async def get_group_members(group_id: str, settings: Settings = Depends(get_settings)):
     """Fetch members of a specific IAS group via SCIM API (read-only)."""
-    if not settings.auth.ias_url:
-        return {"error": "IAS not configured"}
+    if not settings.authorization.scim_url and not settings.auth.ias_url:
+        return {"error": "SCIM URL not configured"}
 
     url = (
         _scim_base_url(settings) + f"/Groups/{group_id}?attributes=displayName,members"
