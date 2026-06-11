@@ -3,6 +3,7 @@ import { Card } from '../components/Card';
 import { Input } from '../components/Input';
 import { Select } from '../components/Select';
 import { Button } from '../components/Button';
+import { showToast } from '../components/Toast';
 import { api } from '../lib/api';
 import { Shield, Users, ChevronDown, ChevronRight, Loader2, Check, Info } from 'lucide-react';
 
@@ -106,10 +107,9 @@ export function AuthorizationTab() {
     setSaving(true);
     const res = await api.put<any>('/api/authz/config', config);
     if (res.ok) {
-      setMessage('Authorization configuration saved');
-      setTimeout(() => setMessage(''), 3000);
+      showToast('success', 'Authorization configuration saved successfully');
     } else {
-      setMessage(res.data?.error || res.error || 'Save failed');
+      showToast('error', res.data?.error || res.error || 'Save failed');
     }
     setSaving(false);
   };
