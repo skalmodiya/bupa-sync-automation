@@ -4,6 +4,7 @@ Proxies requests to the BUPA Sync agent service and manages local logs.
 """
 
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -24,6 +25,15 @@ def _error(message: str, detail: str = "") -> dict:
     return {"error": message, "detail": detail}
 
 
+def _resolve_agent_url(settings: Settings) -> str:
+    """Resolve agent URL, replacing localhost with Docker service name in Docker mode."""
+    url = settings.agent.url.rstrip("/")
+    if os.environ.get("DEPLOYMENT_MODE") == "docker":
+        # In Docker, localhost:5000 is unreachable; use the service name
+        url = url.replace("http://localhost:5000", "http://bupa-sync-agent:5000")
+    return url
+
+
 def _save_invocation_log(request_body: dict, response_data: Any, status: str) -> None:
     """Save agent invocation log locally."""
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
@@ -41,7 +51,7 @@ def _save_invocation_log(request_body: dict, response_data: Any, status: str) ->
 @router.get("/health")
 async def agent_health(settings: Settings = Depends(get_settings)) -> Any:
     """Proxy to agent /health endpoint."""
-    url = settings.agent.url.rstrip("/") + "/health"
+    url = _resolve_agent_url(settings) + "/health"
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             resp = await client.get(url)
@@ -60,7 +70,7 @@ async def agent_health(settings: Settings = Depends(get_settings)) -> Any:
 @router.get("/card")
 async def agent_card(settings: Settings = Depends(get_settings)) -> Any:
     """Proxy to agent /.well-known/agent.json (agent card)."""
-    url = settings.agent.url.rstrip("/") + "/.well-known/agent.json"
+    url = _resolve_agent_url(settings) + "/.well-known/agent.json"
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             resp = await client.get(url)
@@ -82,7 +92,7 @@ async def invoke_agent(
     settings: Settings = Depends(get_settings),
 ) -> Any:
     """Proxy a message to the agent /invoke endpoint and log the interaction."""
-    url = settings.agent.url.rstrip("/") + "/invoke"
+    url = _resolve_agent_url(settings) + "/invoke"
 
     # Transform dashboard payload {"message": "..."} to A2A format {"messages": [...]}
     if "message" in payload and "messages" not in payload:
@@ -169,7 +179,7 @@ async def get_agent_logs(limit: int = 50) -> Any:
 @router.get("/info")
 async def agent_info(settings: Settings = Depends(get_settings)) -> Any:
     """Return agent card info (alias for /card used by dashboard)."""
-    url = settings.agent.url.rstrip("/") + "/.well-known/agent.json"
+    url = _resolve_agent_url(settings) + "/.well-known/agent.json"
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             resp = await client.get(url)

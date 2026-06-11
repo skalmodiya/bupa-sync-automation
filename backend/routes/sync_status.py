@@ -6,6 +6,7 @@ local sync execution history.
 
 import asyncio
 import json
+import os
 import smtplib
 from datetime import datetime, timezone
 from email.mime.multipart import MIMEMultipart
@@ -22,6 +23,14 @@ router = APIRouter()
 
 TIMEOUT = 30.0
 HISTORY_FILE = Path(__file__).parent.parent / "data" / "sync_history.json"
+
+
+def _resolve_agent_url(settings: Settings) -> str:
+    """Resolve agent URL, replacing localhost with Docker service name in Docker mode."""
+    url = settings.agent.url.rstrip("/")
+    if os.environ.get("DEPLOYMENT_MODE") == "docker":
+        url = url.replace("http://localhost:5000", "http://bupa-sync-agent:5000")
+    return url
 
 
 def _error(message: str, detail: str = "") -> dict:
@@ -844,7 +853,7 @@ async def ask_agent_fix(
                 )
             else:
                 # Fallback: call agent directly (local dev)
-                agent_url = settings.agent.url.rstrip("/") + "/invoke"
+                agent_url = _resolve_agent_url(settings) + "/invoke"
                 resp = await client.post(
                     agent_url,
                     json={"messages": [{"role": "user", "content": agent_message}]},
@@ -958,7 +967,7 @@ async def _run_agent_fix_job(
     )
 
     # Call agent
-    agent_url = settings.agent.url.rstrip("/") + "/invoke"
+    agent_url = _resolve_agent_url(settings) + "/invoke"
     try:
         async with httpx.AsyncClient(timeout=120.0) as client:
             update_job(job_id, progress=1, message="Waiting for agent response...")
@@ -977,7 +986,8 @@ async def _run_agent_fix_job(
                 )
     except httpx.ConnectError:
         response_content = (
-            "Cannot reach agent. Make sure it is running on " + settings.agent.url
+            "Cannot reach agent. Make sure it is running on "
+            + _resolve_agent_url(settings)
         )
     except Exception as e:
         response_content = f"Agent error: {str(e)}"

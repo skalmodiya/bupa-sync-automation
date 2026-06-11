@@ -71,10 +71,14 @@ async def test_llm_connection(
 ) -> dict:
     """Test LLM connection by calling the /models endpoint."""
     user = get_optional_user(request)
-    settings = payload or load_settings()
+    saved = load_settings()
+    settings = payload or saved
+    # Resolve masked API key: if payload has a masked key, use the saved real one
+    if settings.llm.api_key and settings.llm.api_key.startswith("*"):
+        settings.llm.api_key = saved.llm.api_key
     url = settings.llm.base_url.rstrip("/") + "/models"
     headers: dict[str, str] = {}
-    if settings.llm.api_key:
+    if settings.llm.api_key and not settings.llm.api_key.startswith("*"):
         headers["Authorization"] = f"Bearer {settings.llm.api_key}"
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
@@ -136,10 +140,14 @@ async def test_n8n_connection(
 ) -> dict:
     """Test n8n connection by listing workflows."""
     user = get_optional_user(request)
-    settings = payload or load_settings()
+    saved = load_settings()
+    settings = payload or saved
+    # Resolve masked API key: if payload has a masked key, use the saved real one
+    if settings.n8n.api_key and settings.n8n.api_key.startswith("*"):
+        settings.n8n.api_key = saved.n8n.api_key
     url = settings.n8n.url.rstrip("/") + "/api/v1/workflows"
     headers: dict[str, str] = {}
-    if settings.n8n.api_key:
+    if settings.n8n.api_key and not settings.n8n.api_key.startswith("*"):
         headers["X-N8N-API-KEY"] = settings.n8n.api_key
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
@@ -266,9 +274,17 @@ async def test_agent_connection(
     request: Request, payload: Settings | None = None
 ) -> dict:
     """Test agent connection via /health endpoint."""
+    import os
+
     user = get_optional_user(request)
     settings = payload or load_settings()
-    url = settings.agent.url.rstrip("/") + "/health"
+    agent_url = settings.agent.url.rstrip("/")
+    # In Docker, resolve localhost to Docker service name
+    if os.environ.get("DEPLOYMENT_MODE") == "docker":
+        agent_url = agent_url.replace(
+            "http://localhost:5000", "http://bupa-sync-agent:5000"
+        )
+    url = agent_url + "/health"
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             resp = await client.get(url)
