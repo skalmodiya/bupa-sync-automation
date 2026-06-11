@@ -54,10 +54,6 @@ class AuthConfig(BaseModel):
     redirect_uri: str = "http://localhost:3001/auth/callback"
 
 
-class JobConfig(BaseModel):
-    threshold: int = 5  # Records above this run as background job
-
-
 class NgrokConfig(BaseModel):
     enabled: bool = False  # Whether ngrok tunnel is active
     authtoken: str = ""  # ngrok authentication token
@@ -76,7 +72,6 @@ class Settings(BaseModel):
     smtp: SmtpConfig = SmtpConfig()
     agent: AgentConfig = AgentConfig()
     auth: AuthConfig = AuthConfig()
-    jobs: JobConfig = JobConfig()
     ngrok: NgrokConfig = NgrokConfig()
     qdrant: QdrantConfig = QdrantConfig()
 

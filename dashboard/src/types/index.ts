@@ -32,9 +32,6 @@ export interface Settings {
     clientSecret: string;
     redirectUri: string;
   };
-  jobs?: {
-    threshold: number;
-  };
 }
 
 export interface AuthStatus {

@@ -50,7 +50,6 @@ export function SettingsPage() {
 
   const RESET_TARGETS = [
     { value: 'audit_log', label: 'Audit Log', description: 'Clear all audit events (reset events are always preserved)' },
-    { value: 'jobs', label: 'Background Jobs', description: 'Clear all completed and failed job records' },
     { value: 'agent_logs', label: 'Agent Invocation Logs', description: 'Delete all stored agent interaction logs' },
     { value: 'sync_history', label: 'Sync Execution History', description: 'Clear the sync run history' },
     { value: 'sessions', label: 'User Sessions', description: 'Force logout all users (you will need to login again)' },
@@ -242,31 +241,6 @@ export function SettingsPage() {
               </div>
               <p className="text-xs text-muted-foreground">
                 If there are more error categories than this limit, a "View All Errors" link will appear on the dashboard.
-              </p>
-            </div>
-          </Card>
-
-          <Card title="Background Job Threshold" description="When retry/agent-fix operations exceed this number of records, they run as background jobs">
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium block mb-1.5">Record Threshold</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={1000}
-                  value={(settings as any).jobs?.threshold ?? 5}
-                  onChange={(e) => {
-                    const newThreshold = Math.max(1, parseInt(e.target.value) || 5);
-                    setSettings((prev: Settings) => ({
-                      ...prev,
-                      jobs: { threshold: newThreshold },
-                    } as any));
-                  }}
-                  className="w-full max-w-[200px] rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Operations affecting more than this many records will be scheduled as background jobs (visible on the Jobs page). Default: 5.
               </p>
             </div>
           </Card>

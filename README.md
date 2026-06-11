@@ -18,7 +18,7 @@
 - **n8n Workflow Orchestration** — Initial sync, retry logic, and agent-driven fix workflows
 - **React Dashboard** — Configurable cards, real-time status, and batch operations
 - **SAP IAS Authentication** — Single Sign-On via OpenID Connect
-- **Background Job Scheduling** — Automated sync runs with configurable intervals
+- **Workflow Monitor** — Track all n8n workflow executions in real time
 - **Audit Trail** — Full user action tracking with timestamps and details
 - **Email Notifications** — SMTP-based alerts for sync failures and completions
 - **Multi-Category Batch Operations** — Process employees by category with bulk actions
@@ -182,7 +182,6 @@ All configuration is managed through the **Settings** page in the dashboard (`/s
 | LLM Proxy             | AI Core / GenAI Hub endpoint and credentials   |
 | SMTP                  | Mail server host, port, sender address         |
 | Mock S/4HANA          | Base URL for the SAP mock service              |
-| Sync Intervals        | Cron expressions for background jobs           |
 | ngrok                 | Auth token, domain for webhook tunneling       |
 | Qdrant                | Vector DB URL for RAG/embeddings               |
 
@@ -237,13 +236,11 @@ BPSYNC/
 │   │   ├── sync_status.py      # Sync status tracking
 │   │   ├── n8n_proxy.py        # n8n workflow proxy
 │   │   ├── agent_proxy.py      # AI agent proxy
-│   │   ├── jobs.py             # Background job management
 │   │   └── audit.py            # Audit log endpoints
 │   ├── main.py                 # FastAPI app entry point
 │   ├── auth.py                 # IAS/JWT authentication
-│   ├── database.py             # SQLite database layer
+│   ├── database.py             # Database layer (PostgreSQL/SQLite)
 │   ├── config.py               # App configuration
-│   ├── jobs.py                 # Job scheduler
 │   ├── audit.py                # Audit trail logic
 │   ├── Dockerfile
 │   └── requirements.txt

@@ -10,7 +10,6 @@ import {
   LogOut,
   User,
   ChevronUp,
-  Cog,
   BookOpen,
   GitBranch,
 } from 'lucide-react';
@@ -22,7 +21,6 @@ const navItems = [
   { to: '/records', label: 'Records', icon: List, alwaysVisible: true },
   { to: '/workflows', label: 'Workflows', icon: Workflow, alwaysVisible: true },
   { to: '/agent', label: 'Agent', icon: Bot, alwaysVisible: true },
-  { to: '/jobs', label: 'Jobs', icon: Cog, alwaysVisible: true },
   { to: '/audit', label: 'Audit Log', icon: ClipboardList, alwaysVisible: true },
   { to: '/methodology', label: 'Methodology', icon: BookOpen, alwaysVisible: true },
   { to: '/process', label: 'Process Flow', icon: GitBranch, alwaysVisible: true },

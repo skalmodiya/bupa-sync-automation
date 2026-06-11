@@ -33,9 +33,6 @@
     "client_secret": "",
     "redirect_uri": "http://localhost:3001/api/auth/callback"
   },
-  "jobs": {
-    "threshold": 5
-  },
   "ngrok": {
     "enabled": false,
     "authtoken": "",

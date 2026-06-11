@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { clsx } from 'clsx';
 import { Loader2, ChevronDown, ChevronRight, Bot, RefreshCw, RotateCcw, X } from 'lucide-react';
@@ -65,7 +65,6 @@ const STATUS_BADGE_CLASSES: Record<string, string> = {
 
 export function RecordsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const initialStatus = (searchParams.get('status') as StatusFilter) || 'all';
   const initialCategory = searchParams.get('category') || '';
 
@@ -248,15 +247,10 @@ export function RecordsPage() {
     setRetryLoading(false);
 
     if (res.ok && res.data && !res.data.error) {
-      if (res.data.status === 'scheduled') {
-        showToast('success', `Scheduled as background job. Track it on the Jobs page.`);
-        setTimeout(() => navigate('/jobs'), 1500);
-      } else {
-        showToast('success', `Retry triggered for ${res.data.pernr_count} employees`);
-        setSelectedPernrs(new Set());
-        offsetRef.current = 0;
-        fetchRecords(0, false);
-      }
+      showToast('success', `Retry triggered for ${res.data.pernr_count} employees`);
+      setSelectedPernrs(new Set());
+      offsetRef.current = 0;
+      fetchRecords(0, false);
     } else {
       showToast('error', res.data?.error || res.error || 'Retry failed');
     }
@@ -279,15 +273,10 @@ export function RecordsPage() {
         setRetryAllLoading(false);
 
         if (res.ok && res.data && !res.data.error) {
-          if (res.data.status === 'scheduled') {
-            showToast('success', `Scheduled as background job. Track it on the Jobs page.`);
-            setTimeout(() => navigate('/jobs'), 1500);
-          } else {
-            showToast('success', `Retry triggered for ${res.data.pernr_count} failed employees`);
-            setSelectedPernrs(new Set());
-            offsetRef.current = 0;
-            fetchRecords(0, false);
-          }
+          showToast('success', `Retry triggered for ${res.data.pernr_count} failed employees`);
+          setSelectedPernrs(new Set());
+          offsetRef.current = 0;
+          fetchRecords(0, false);
         } else {
           showToast('error', res.data?.error || res.error || 'Retry all failed');
         }
@@ -308,14 +297,9 @@ export function RecordsPage() {
     setAgentLoading(false);
 
     if (res.ok && res.data && !res.data.error) {
-      if ((res.data as any).status === 'scheduled') {
-        showToast('success', `Scheduled as background job. Track it on the Jobs page.`);
-        setTimeout(() => navigate('/jobs'), 1500);
-      } else {
-        setAgentResponse(res.data.agent_response);
-        setAgentPanelOpen(true);
-        showToast('success', `Agent analyzed ${res.data.errors_analyzed} errors`);
-      }
+      setAgentResponse(res.data.agent_response);
+      setAgentPanelOpen(true);
+      showToast('success', `Agent analyzed ${res.data.errors_analyzed} errors`);
     } else {
       showToast('error', res.data?.error || res.error || 'Agent request failed');
     }
@@ -435,14 +419,9 @@ export function RecordsPage() {
                       mode: 'by_category',
                     });
                     if (res.ok && res.data && !res.data.error) {
-                      if ((res.data as any).status === 'scheduled') {
-                        showToast('success', `Scheduled as background job. Track it on the Jobs page.`);
-                        setTimeout(() => navigate('/jobs'), 1500);
-                      } else {
-                        setAgentResponse(res.data.agent_response);
-                        setAgentPanelOpen(true);
-                        showToast('success', `Agent analyzed ${res.data.errors_analyzed} errors`);
-                      }
+                      setAgentResponse(res.data.agent_response);
+                      setAgentPanelOpen(true);
+                      showToast('success', `Agent analyzed ${res.data.errors_analyzed} errors`);
                     } else {
                       showToast('error', res.data?.error || res.error || 'Agent fix failed');
                     }
@@ -463,13 +442,8 @@ export function RecordsPage() {
                       mode: 'by_category',
                     });
                     if (res.ok && res.data && !res.data.error) {
-                      if (res.data.status === 'scheduled') {
-                        showToast('success', `Scheduled as background job. Track it on the Jobs page.`);
-                        setTimeout(() => navigate('/jobs'), 1500);
-                      } else {
-                        showToast('success', `Retry triggered for ${res.data.pernr_count} employees`);
-                        fetchRecords(0, false);
-                      }
+                      showToast('success', `Retry triggered for ${res.data.pernr_count} employees`);
+                      fetchRecords(0, false);
                     } else {
                       showToast('error', res.data?.error || res.error || 'Retry failed');
                     }

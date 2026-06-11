@@ -592,7 +592,6 @@ async def reset_app(request: Request, payload: dict = Body(...)) -> dict:
 
     valid_targets = [
         "audit_log",
-        "jobs",
         "agent_logs",
         "sync_history",
         "settings",
@@ -630,10 +629,6 @@ async def reset_app(request: Request, payload: dict = Body(...)) -> dict:
             results["audit_log"] = (
                 f"{cursor.rowcount} events deleted (reset events preserved)"
             )
-
-        if "jobs" in targets:
-            cursor = conn.execute("DELETE FROM jobs")
-            results["jobs"] = f"{cursor.rowcount} jobs deleted"
 
         if "sessions" in targets:
             cursor = conn.execute("DELETE FROM sessions")

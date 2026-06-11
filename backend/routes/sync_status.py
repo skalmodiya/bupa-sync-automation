@@ -628,35 +628,7 @@ async def retry_sync(
             "No employees to retry", "Provide pernr_list or use mode=all_failed"
         )
 
-    # Check if we should schedule as background job
-    job_threshold = settings.jobs.threshold
-    if len(pernr_list) > job_threshold:
-        from jobs import create_job, run_job_async
-
-        job_id = create_job(
-            "retry_sync",
-            {"pernr_list": pernr_list, "mode": mode, "categories": categories},
-            created_by=user["user_id"],
-        )
-        run_job_async(job_id, _run_retry_job, pernr_list, settings)
-
-        log_event(
-            action="sync.retry_scheduled",
-            category="workflow",
-            user=user["user_id"],
-            user_name=user["name"],
-            user_email=user.get("email", ""),
-            details={"pernr_count": len(pernr_list), "mode": mode, "job_id": job_id},
-        )
-
-        return {
-            "status": "scheduled",
-            "job_id": job_id,
-            "pernr_count": len(pernr_list),
-            "message": f"Scheduled as background job (>{job_threshold} records)",
-        }
-
-    # Run synchronously for small batches — route through n8n webhook
+    # Route through n8n webhook
     n8n_base = (
         settings.n8n.webhook_url.rstrip("/")
         if settings.n8n.webhook_url
@@ -773,45 +745,6 @@ async def ask_agent_fix(
     if not selected_errors:
         return _error("No errors found", "Selected employees have no sync errors")
 
-    # Check if we should schedule as background job
-    job_threshold = settings.jobs.threshold
-    if len(selected_errors) > job_threshold:
-        from jobs import create_job, run_job_async
-
-        job_id = create_job(
-            "agent_fix",
-            {
-                "pernr_list": pernr_list,
-                "categories": categories,
-                "mode": mode,
-                "error_count": len(selected_errors),
-            },
-            created_by=user["user_id"],
-        )
-        run_job_async(job_id, _run_agent_fix_job, selected_errors, settings)
-
-        log_event(
-            action="agent.fix_scheduled",
-            category="agent",
-            user=user["user_id"],
-            user_name=user["name"],
-            user_email=user.get("email", ""),
-            details={
-                "pernr_count": len(pernr_list),
-                "errors_found": len(selected_errors),
-                "job_id": job_id,
-            },
-        )
-
-        return {
-            "status": "scheduled",
-            "job_id": job_id,
-            "pernr_count": len(pernr_list),
-            "errors_analyzed": len(selected_errors),
-            "message": f"Scheduled as background job (>{job_threshold} errors)",
-        }
-
-    # Run synchronously for small batches
     # Build message for agent
     error_summary = json.dumps(selected_errors, indent=2)
     agent_message = (
@@ -901,101 +834,6 @@ async def ask_agent_fix(
         "status": "completed",
         "pernr_count": len(pernr_list),
         "errors_analyzed": len(selected_errors),
-        "agent_response": response_content,
-    }
-
-
-async def _run_retry_job(job_id: str, pernr_list: list[str], settings: Settings):
-    """Background job worker for retry sync operations."""
-    from jobs import update_job
-
-    total = len(pernr_list)
-    update_job(job_id, total=total, message=f"Retrying {total} employees...")
-
-    base_url = settings.mock_s4.url.rstrip("/")
-    success_count = 0
-    fail_count = 0
-    errors = []
-
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        for i, pernr in enumerate(pernr_list):
-            try:
-                resp = await client.post(
-                    f"{base_url}/api/bupa/sync/retry",
-                    json={"pernr_list": [pernr]},
-                )
-                if resp.status_code == 200:
-                    success_count += 1
-                else:
-                    fail_count += 1
-                    errors.append({"pernr": pernr, "error": resp.text[:200]})
-            except Exception as e:
-                fail_count += 1
-                errors.append({"pernr": pernr, "error": str(e)})
-
-            # Update progress
-            update_job(
-                job_id,
-                progress=i + 1,
-                message=f"Processed {i + 1}/{total} — {success_count} ok, {fail_count} failed",
-            )
-
-    return {
-        "total": total,
-        "success": success_count,
-        "failed": fail_count,
-        "errors": errors[:50],
-    }
-
-
-async def _run_agent_fix_job(
-    job_id: str, selected_errors: list[dict], settings: Settings
-):
-    """Background job worker for agent fix operations."""
-    from jobs import update_job
-
-    total = len(selected_errors)
-    update_job(job_id, total=total, message=f"Sending {total} errors to agent...")
-
-    # Build message for agent
-    error_summary = json.dumps(selected_errors, indent=2)
-    agent_message = (
-        f"Analyze these {total} BUPA sync errors and propose fixes. "
-        f"For each error, provide: error category, root cause, proposed fix action, "
-        f"target table/field, current value, proposed value, and confidence score (0-1).\n\n"
-        f"Errors:\n{error_summary}"
-    )
-
-    # Call agent
-    agent_url = _resolve_agent_url(settings) + "/invoke"
-    try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            update_job(job_id, progress=1, message="Waiting for agent response...")
-            resp = await client.post(
-                agent_url,
-                json={"messages": [{"role": "user", "content": agent_message}]},
-            )
-            if resp.status_code == 200:
-                agent_response = resp.json()
-                response_content = agent_response.get("result", {}).get(
-                    "content", agent_response.get("content", str(agent_response))
-                )
-            else:
-                response_content = (
-                    f"Agent error: {resp.status_code} - {resp.text[:500]}"
-                )
-    except httpx.ConnectError:
-        response_content = (
-            "Cannot reach agent. Make sure it is running on "
-            + _resolve_agent_url(settings)
-        )
-    except Exception as e:
-        response_content = f"Agent error: {str(e)}"
-
-    update_job(job_id, progress=total, message="Agent analysis complete")
-
-    return {
-        "errors_analyzed": total,
         "agent_response": response_content,
     }
 
