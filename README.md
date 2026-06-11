@@ -190,21 +190,26 @@ ngrok exposes your local n8n webhooks to the internet, useful for receiving exte
 
 **Setup:**
 
-1. Start with the ngrok profile:
+1. Copy the env example and set your ngrok credentials:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your NGROK_AUTHTOKEN and NGROK_DOMAIN
+   ```
+
+2. Start with the ngrok profile:
    ```bash
    docker-compose --profile ngrok up --build -d
    ```
 
-2. Configure in Dashboard > Settings > ngrok:
-   - **Auth Token**: Your ngrok authentication token
-   - **Domain**: Your static ngrok domain (e.g. `my-app.ngrok-free.app`)
-
-3. Set the **n8n Webhook URL** (in Settings > n8n) to your ngrok domain:
+3. Set the **n8n Webhook URL** (in Dashboard > Settings > n8n) to your ngrok domain:
    ```
    https://my-app.ngrok-free.app
    ```
 
 4. The ngrok inspection UI is available at http://localhost:4040
+
+> **Note:** ngrok auth token and domain are configured via `.env` file (not the Settings page)
+> because they are required at container startup time before the backend is available.
 
 ---
 

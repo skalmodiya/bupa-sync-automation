@@ -57,13 +57,13 @@ services:
 
   # ngrok (optional - exposes n8n webhooks to the internet)
   # Activate with: docker-compose --profile ngrok up
-  # Configure NGROK_AUTHTOKEN and NGROK_DOMAIN in Dashboard Settings > ngrok
+  # Set NGROK_AUTHTOKEN and NGROK_DOMAIN in .env file
   ngrok:
     image: ngrok/ngrok:latest
     profiles: ["ngrok"]
-    command: http --domain=$${NGROK_DOMAIN:-localhost} n8n:5678 --log=stdout
+    command: http --domain=${NGROK_DOMAIN:-localhost} n8n:5678 --log=stdout
     environment:
-      - NGROK_AUTHTOKEN=$${NGROK_AUTHTOKEN:-}
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN:-}
     ports:
       - "4040:4040"
     depends_on:
