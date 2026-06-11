@@ -55,20 +55,20 @@ services:
     networks:
       - bpsync
 
-  # ngrok (optional - exposes n8n webhooks to the internet)
+  # ngrok (optional - exposes dashboard to the internet via HTTPS)
   # Activate with: docker-compose --profile ngrok up
   # Set NGROK_AUTHTOKEN and NGROK_DOMAIN in .env file
   ngrok:
     image: ngrok/ngrok:latest
     profiles: ["ngrok"]
-    command: http --domain=${NGROK_DOMAIN:-localhost} n8n:5678 --log=stdout
+    command: http --domain=${NGROK_DOMAIN:-localhost} dashboard:80 --log=stdout
     environment:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN:-}
     ports:
       - "4040:4040"
     depends_on:
-      n8n:
-        condition: service_healthy
+      dashboard:
+        condition: service_started
     networks:
       - bpsync
 
