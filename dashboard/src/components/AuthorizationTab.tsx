@@ -171,7 +171,7 @@ export function AuthorizationTab() {
       </Card>
 
       {/* SCIM Credentials */}
-      <Card title="IAS SCIM API Credentials" description="Technical user credentials to read IAS groups and members (read-only access)">
+      <Card title="IAS SCIM API Credentials" description="API client credentials for reading IAS groups and members (read-only)">
         <div className="space-y-3">
           <Input
             label="SCIM API URL"
@@ -180,13 +180,13 @@ export function AuthorizationTab() {
             placeholder="https://your-tenant.accounts.ondemand.com/scim"
           />
           <Input
-            label="SCIM User (System as Administrator ID)"
+            label="Client ID"
             value={config.scim_user}
             onChange={(e) => setConfig({ ...config, scim_user: e.target.value })}
-            placeholder="Username"
+            placeholder="Client ID from IAS System Administrator"
           />
           <Input
-            label="SCIM Password"
+            label="Client Secret"
             type="password"
             value={config.scim_password}
             onChange={(e) => setConfig({ ...config, scim_password: e.target.value })}
