@@ -40,10 +40,14 @@
                      └──────────────┘     └──────────────┘
 
 Additional Services:
-┌──────────────┐     ┌──────────────┐
-│   Mailpit    │     │  Mock S/4    │
-│  (SMTP/UI)   │     │  (FastAPI)   │
-└──────────────┘     └──────────────┘
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  PostgreSQL  │     │   Mailpit    │     │  Mock S/4    │
+│  (Database)  │     │  (SMTP/UI)   │     │  (FastAPI)   │
+└──────────────┘     └──────────────┘     └──────────────┘
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│   pgAdmin    │     │    Qdrant    │     │    ngrok     │
+│  (DB Admin)  │     │ (Vector DB)  │     │  (Tunnels)   │
+└──────────────┘     └──────────────┘     └──────────────┘
 ```
 
 ---
@@ -123,7 +127,7 @@ Once all services are healthy:
 | Backend API   | http://localhost:8081         | —                                    |
 | n8n Editor    | http://localhost:5678         | Create account on first login; workflows are pre-loaded |
 | PostgreSQL    | localhost:5432               | User: bpsync / Pass: bpsync          |
-| pgAdmin       | http://localhost:5050         | Auto-connected to both DBs           |
+| pgAdmin       | http://localhost:5050         | Login: admin@bupa-sync.dev / admin |
 | Qdrant        | http://localhost:6333         | Vector DB dashboard                  |
 | Mock S/4HANA  | http://localhost:8090         | —                                    |
 | Mailpit UI    | http://localhost:8025         | —                                    |
@@ -267,7 +271,9 @@ BPSYNC/
 │   ├── data/                   # Sample employee/BP data
 │   └── Dockerfile
 ├── docker/
-│   └── n8n-import/             # Auto-imports workflows into n8n
+│   ├── n8n-import/             # Auto-imports workflows into n8n
+│   ├── pgadmin/                # pgAdmin server config (servers.json)
+│   └── postgres/               # PostgreSQL init scripts (init.sql)
 ├── docker-compose.yml          # Full stack orchestration
 ├── start-local.bat             # Native startup (Windows)
 ├── start-local.sh              # Native startup (Linux/Mac)
@@ -382,6 +388,7 @@ Full stack runs via `docker-compose up --build`. Suitable for demos and developm
 | Problem                          | Solution                                          |
 |----------------------------------|---------------------------------------------------|
 | Port already in use              | Stop conflicting services or change ports in `.env`|
+| pgAdmin won't start (exit 1)    | Email domain must not be `.local`; use `.dev` or `.com` instead |
 | n8n workflows not imported       | The import retries automatically; check `docker-compose logs n8n-import` for status |
 | Backend can't connect to mock    | Ensure `mock-s4hana` is healthy before backend starts|
 | Dashboard shows blank page       | Check browser console; ensure backend is running  |
@@ -441,6 +448,7 @@ docker-compose ps
 curl http://localhost:8081/health   # Backend
 curl http://localhost:8090/api/pa0000  # Mock S/4HANA
 curl http://localhost:5000/health   # Agent
+curl http://localhost:6333/healthz  # Qdrant
 ```
 
 ### Resetting Data
