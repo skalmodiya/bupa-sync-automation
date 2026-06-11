@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSettings } from '../hooks/useSettings';
 import { Card } from '../components/Card';
 import { Input } from '../components/Input';
 import { Select } from '../components/Select';
@@ -37,6 +38,7 @@ interface AuthzConfig {
 }
 
 export function AuthorizationTab() {
+  const { settings } = useSettings();
   const [roles, setRoles] = useState<Role[]>([]);
   const [groups, setGroups] = useState<IASGroup[]>([]);
   const [config, setConfig] = useState<AuthzConfig>({
@@ -77,7 +79,11 @@ export function AuthorizationTab() {
 
   const fetchGroups = async () => {
     setLoadingGroups(true);
-    const res = await api.post<{ groups: IASGroup[] }>('/api/authz/groups', config);
+    const payload = {
+      ...config,
+      scim_url: settings.auth?.iasUrl ? `${settings.auth.iasUrl}/scim` : config.scim_url,
+    };
+    const res = await api.post<{ groups: IASGroup[] }>('/api/authz/groups', payload);
     if (res.ok && res.data && (res.data as any).groups) {
       setGroups((res.data as any).groups);
       setMessage('');
@@ -105,7 +111,11 @@ export function AuthorizationTab() {
 
   const handleSave = async () => {
     setSaving(true);
-    const res = await api.put<any>('/api/authz/config', config);
+    const payload = {
+      ...config,
+      scim_url: settings.auth?.iasUrl ? `${settings.auth.iasUrl}/scim` : config.scim_url,
+    };
+    const res = await api.put<any>('/api/authz/config', payload);
     if (res.ok) {
       showToast('success', 'Authorization configuration saved successfully');
     } else {
@@ -173,12 +183,13 @@ export function AuthorizationTab() {
       {/* SCIM Credentials */}
       <Card title="IAS SCIM API Credentials" description="API client credentials for reading IAS groups and members (read-only)">
         <div className="space-y-3">
-          <Input
-            label="SCIM API URL"
-            value={config.scim_url}
-            onChange={(e) => setConfig({ ...config, scim_url: e.target.value })}
-            placeholder="https://your-tenant.accounts.ondemand.com/scim"
-          />
+          <div>
+            <label className="text-sm font-medium text-foreground block mb-1.5">SCIM API URL</label>
+            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted/50 px-3 py-1 text-sm text-muted-foreground">
+              {settings.auth?.iasUrl ? `${settings.auth.iasUrl}/scim` : '— Configure IAS URL in Auth tab first —'}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Derived from Auth tab IAS Tenant URL</p>
+          </div>
           <Input
             label="Client ID"
             value={config.scim_user}
