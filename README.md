@@ -310,13 +310,49 @@ Full stack runs via `docker-compose up --build`. Suitable for demos and developm
 | Problem                          | Solution                                          |
 |----------------------------------|---------------------------------------------------|
 | Port already in use              | Stop conflicting services or change ports in `.env`|
-| n8n workflows not imported       | Wait for n8n health check, then restart `n8n-import`|
+| n8n workflows not imported       | The import retries automatically; check `docker-compose logs n8n-import` for status |
 | Backend can't connect to mock    | Ensure `mock-s4hana` is healthy before backend starts|
 | Dashboard shows blank page       | Check browser console; ensure backend is running  |
 | Auth redirect loop               | Verify IAS client ID and callback URL in settings |
+| Agent Fix returns auth error     | See [Agent Fix LLM Authentication](#agent-fix-llm-authentication) below |
 | Agent returns empty responses    | Check LLM proxy URL and API key in settings       |
 | Docker build fails               | Run `docker-compose down -v` then rebuild         |
 | SQLite locked errors             | Ensure only one backend instance is running       |
+
+### Agent Fix LLM Authentication
+
+If you get an error like `litellm.AuthenticationError: Invalid API key for local proxy`, follow these steps:
+
+1. **Ensure the Hyperspace LLM Proxy is running** on your host machine (port 6655):
+   ```bash
+   curl http://localhost:6655/litellm/v1/models
+   ```
+
+2. **Set the API key** in Dashboard > Settings > LLM section:
+   - Enter a valid API key for your Hyperspace proxy
+   - Click **Test Connection** to verify
+   - Save settings
+
+3. **No restart needed** — the agent automatically picks up API key changes from settings on each invocation.
+
+4. **Docker-specific notes:**
+   - The agent container uses `host.docker.internal:6655` to reach the proxy on your host
+   - The `LLM_BASE_URL` env var in `docker-compose.yml` ensures correct routing
+   - If you change the proxy port, update both `docker-compose.yml` and `docker-settings.json`
+
+### n8n Workflows Missing on First Login
+
+The `n8n-import` service automatically imports workflows with retry logic:
+- Phase 1: Waits for n8n web UI to respond
+- Phase 2: Waits for n8n CLI/database to be ready
+- Phase 3: Imports each workflow with up to 5 retries
+
+If workflows are still missing after startup, check logs:
+```bash
+docker-compose logs n8n-import
+```
+
+After import, workflows need to be **activated** manually in the n8n UI.
 
 ### Checking Service Health
 

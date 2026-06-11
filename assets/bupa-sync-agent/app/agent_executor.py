@@ -34,8 +34,13 @@ SETTINGS_PATH = Path(
 def _load_llm_settings() -> dict:
     """Load LLM configuration from shared settings.json file.
 
-    Falls back to defaults if file not found (first run or production mode).
-    In production mode, environment variables take precedence.
+    Resolution order:
+    1. Production mode: environment variables only.
+    2. Local/Docker mode: settings.json -> env var overrides -> hardcoded defaults.
+
+    Environment variables (LLM_BASE_URL, LLM_MODEL, LLM_API_KEY, LLM_PROVIDER)
+    always override settings.json values when set, ensuring Docker containers
+    work correctly even before the user configures via the Settings UI.
     """
     defaults = {
         "provider": "local_proxy",
@@ -44,7 +49,7 @@ def _load_llm_settings() -> dict:
         "api_key": "",
     }
 
-    # Production mode: use env vars
+    # Production mode: use env vars exclusively
     if os.environ.get("DEPLOYMENT_MODE") == "production":
         return {
             "provider": os.environ.get("LLM_PROVIDER", "sap_ai_core"),
@@ -53,13 +58,14 @@ def _load_llm_settings() -> dict:
             "api_key": os.environ.get("LLM_API_KEY", ""),
         }
 
-    # Local/Docker mode: read from settings.json
+    # Local/Docker mode: read from settings.json first
+    config = dict(defaults)
     try:
         if SETTINGS_PATH.exists():
             with open(SETTINGS_PATH, "r") as f:
                 settings = json.load(f)
             llm_config = settings.get("llm", {})
-            return {
+            config = {
                 "provider": llm_config.get("provider", defaults["provider"]),
                 "base_url": llm_config.get("base_url", defaults["base_url"]),
                 "model": llm_config.get("model", defaults["model"]),
@@ -68,7 +74,18 @@ def _load_llm_settings() -> dict:
     except (json.JSONDecodeError, IOError) as e:
         logger.warning(f"Could not read settings.json: {e}. Using defaults.")
 
-    return defaults
+    # Environment variables override settings.json (critical for Docker mode
+    # where localhost doesn't resolve to the host machine)
+    if os.environ.get("LLM_BASE_URL"):
+        config["base_url"] = os.environ["LLM_BASE_URL"]
+    if os.environ.get("LLM_MODEL"):
+        config["model"] = os.environ["LLM_MODEL"]
+    if os.environ.get("LLM_API_KEY"):
+        config["api_key"] = os.environ["LLM_API_KEY"]
+    if os.environ.get("LLM_PROVIDER"):
+        config["provider"] = os.environ["LLM_PROVIDER"]
+
+    return config
 
 
 class LiteLLMChat(BaseChatModel):
@@ -88,6 +105,7 @@ class LiteLLMChat(BaseChatModel):
 
     async def _agenerate(self, messages, stop=None, **kwargs):
         from litellm import acompletion
+        import litellm
 
         formatted = []
         for msg in messages:
@@ -107,14 +125,34 @@ class LiteLLMChat(BaseChatModel):
         ):
             model = f"openai/{model}"
 
-        response = await acompletion(
-            model=model,
-            messages=formatted,
-            api_base=self.api_base,
-            api_key=self.api_key or "not-needed",
-            stop=stop,
-            **kwargs,
-        )
+        try:
+            response = await acompletion(
+                model=model,
+                messages=formatted,
+                api_base=self.api_base,
+                api_key=self.api_key or "not-needed",
+                stop=stop,
+                **kwargs,
+            )
+        except litellm.AuthenticationError as e:
+            logger.error(
+                f"LLM authentication failed. Check API key in Settings > LLM. "
+                f"Provider endpoint: {self.api_base}. Error: {e}"
+            )
+            raise RuntimeError(
+                f"LLM authentication failed. Please update the API key in "
+                f"Dashboard Settings > LLM section and ensure the LLM proxy is "
+                f"running at {self.api_base}. "
+                f"(If using Docker, verify the Hyperspace proxy is running on your host machine.)"
+            ) from e
+        except litellm.APIConnectionError as e:
+            logger.error(f"Cannot reach LLM proxy at {self.api_base}. Error: {e}")
+            raise RuntimeError(
+                f"Cannot connect to LLM proxy at {self.api_base}. "
+                f"Ensure the Hyperspace LLM proxy is running. "
+                f"(If using Docker, the proxy must be accessible at host.docker.internal:6655.)"
+            ) from e
+
         content = response.choices[0].message.content or ""
         return ChatResult(
             generations=[ChatGeneration(message=AIMessage(content=content))]
@@ -181,10 +219,17 @@ class AgentExecutor:
             )
             try:
                 resp = httpx.get(models_url, headers=headers, timeout=5.0)
-                if resp.status_code in (200, 401):
-                    logger.info(
-                        f"LLM verified reachable: {provider}/{config['model']} (HTTP {resp.status_code})"
+                if resp.status_code == 200:
+                    logger.info(f"LLM verified reachable: {provider}/{config['model']}")
+                    return llm
+                elif resp.status_code == 401:
+                    logger.warning(
+                        f"LLM proxy returned 401 (invalid API key). "
+                        f"The agent will attempt to use the LLM but calls may fail. "
+                        f"Update the API key in Dashboard Settings > LLM."
                     )
+                    # Still return the LLM so the user gets a clear auth error
+                    # at invocation time rather than silent mock mode
                     return llm
                 else:
                     logger.warning(
@@ -222,10 +267,33 @@ class AgentExecutor:
             llm=llm, tools=self._tools, system_prompt=system_prompt
         )
         self._initialized = True
+        self._last_llm_config = _load_llm_settings()
         logger.info("AgentExecutor initialized successfully")
+
+    async def _refresh_llm(self):
+        """Re-read LLM settings and rebuild the agent if config changed.
+
+        This allows the user to update the API key in the Settings UI
+        without needing to restart the agent container.
+        """
+        current_config = _load_llm_settings()
+        if current_config != getattr(self, "_last_llm_config", None):
+            logger.info(
+                "LLM settings changed (base_url or api_key updated). Rebuilding agent..."
+            )
+            llm = await self._create_llm()
+            system_prompt = get_system_prompt()
+            self._graph = create_agent(
+                llm=llm, tools=self._tools, system_prompt=system_prompt
+            )
+            self._last_llm_config = current_config
+            logger.info("Agent rebuilt with updated LLM configuration.")
 
     async def invoke(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
         """Process incoming messages through the LangGraph agent.
+
+        Re-reads LLM settings on each invocation so that API key updates
+        from the Settings UI take effect without restarting the agent.
 
         Args:
             messages: List of message dicts with 'role' and 'content' keys.
@@ -235,6 +303,9 @@ class AgentExecutor:
         """
         if not self._initialized:
             await self.initialize()
+        else:
+            # Re-read LLM settings in case user updated API key via Settings UI
+            await self._refresh_llm()
 
         # Convert incoming messages to LangChain message objects
         lc_messages = []

@@ -52,6 +52,8 @@ services:
     environment:
       - SETTINGS_PATH=/app/shared-data/settings.json
       - DEPLOYMENT_MODE=docker
+      - LLM_BASE_URL=http://host.docker.internal:6655/litellm/v1
+      - LLM_MODEL=anthropic--claude-4.6-sonnet
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:

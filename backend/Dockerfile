@@ -11,8 +11,11 @@ COPY . .
 # Create data directory
 RUN mkdir -p /app/data
 
-# Pre-seed docker settings
-COPY docker-settings.json /app/data/settings.json
+# Keep docker-settings.json as seed template (entrypoint copies if needed)
+COPY docker-settings.json /app/docker-settings.json
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 EXPOSE 8080
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
