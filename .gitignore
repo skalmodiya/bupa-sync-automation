@@ -105,6 +105,7 @@ opencode.json
 .claude/
 *.pptx
 Client ID*.txt
+IdDS_SCIM.json
 
 # ---------- Keep these (needed for builds) ----------
 !backend/docker-settings.json
