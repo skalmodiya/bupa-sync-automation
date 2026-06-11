@@ -10,6 +10,7 @@ import { AgentPage } from './pages/AgentPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AuditPage } from './pages/AuditPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { UsersPage } from './pages/UsersPage';
 import { MethodologyPage } from './pages/MethodologyPage';
 import { ProcessPage } from './pages/ProcessPage';
 import './index.css';
@@ -24,6 +25,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/records" element={<RecordsPage />} />
             <Route path="/workflows" element={<WorkflowsPage />} />
             <Route path="/agent" element={<AgentPage />} />
+            <Route path="/users" element={<UsersPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/audit" element={<AuditPage />} />
             <Route path="/profile" element={<ProfilePage />} />

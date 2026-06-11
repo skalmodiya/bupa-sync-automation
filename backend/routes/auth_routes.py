@@ -9,7 +9,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse, JSONResponse
 
 from config import load_settings
-from database import create_session, get_session, delete_session
+from database import create_session, get_session, delete_session, upsert_app_user
 from auth import decode_token
 
 router = APIRouter()
@@ -134,6 +134,16 @@ async def callback(request: Request, code: str = "", state: str = "", error: str
         access_token=access_token,
         groups=_json.dumps(user_groups),
         expires_at=str(token_data.get("expires_in", "3600")),
+    )
+
+    # Auto-register/update app user record
+    upsert_app_user(
+        user_id=user_info.get("sub", "unknown"),
+        display_name=user_info.get("name", user_info.get("given_name", "User")),
+        email=user_info.get("email", ""),
+        given_name=user_info.get("given_name", ""),
+        family_name=user_info.get("family_name", ""),
+        groups=_json.dumps(user_groups),
     )
 
     # Redirect to dashboard with session cookie

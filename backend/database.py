@@ -156,6 +156,19 @@ _SQLITE_SCHEMA = """
         expires_at TEXT,
         created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS app_users (
+        user_id TEXT PRIMARY KEY,
+        display_name TEXT NOT NULL,
+        email TEXT NOT NULL DEFAULT '',
+        given_name TEXT DEFAULT '',
+        family_name TEXT DEFAULT '',
+        groups TEXT DEFAULT '[]',
+        first_login TEXT NOT NULL,
+        last_login TEXT NOT NULL,
+        login_count INTEGER DEFAULT 1,
+        status TEXT DEFAULT 'active'
+    );
 """
 
 _POSTGRES_SCHEMA = """
@@ -192,6 +205,19 @@ _POSTGRES_SCHEMA = """
         groups TEXT DEFAULT '[]',
         expires_at TEXT,
         created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS app_users (
+        user_id TEXT PRIMARY KEY,
+        display_name TEXT NOT NULL,
+        email TEXT NOT NULL DEFAULT '',
+        given_name TEXT DEFAULT '',
+        family_name TEXT DEFAULT '',
+        groups TEXT DEFAULT '[]',
+        first_login TEXT NOT NULL,
+        last_login TEXT NOT NULL,
+        login_count INTEGER DEFAULT 1,
+        status TEXT DEFAULT 'active'
     );
 """
 
@@ -388,6 +414,90 @@ def get_session(session_id: str) -> Optional[dict]:
 def delete_session(session_id: str):
     with get_connection() as conn:
         conn.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
+
+
+# --- App Users (auto-created on IAS login) ---
+
+
+def upsert_app_user(
+    user_id: str,
+    display_name: str,
+    email: str = "",
+    given_name: str = "",
+    family_name: str = "",
+    groups: str = "[]",
+):
+    """Create or update an app user record on login."""
+    now = datetime.now(timezone.utc).isoformat()
+    with get_connection() as conn:
+        if _USE_POSTGRES:
+            conn.execute(
+                """INSERT INTO app_users (user_id, display_name, email, given_name, family_name, groups, first_login, last_login, login_count, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 1, 'active')
+                ON CONFLICT (user_id) DO UPDATE SET
+                    display_name = EXCLUDED.display_name,
+                    email = EXCLUDED.email,
+                    given_name = EXCLUDED.given_name,
+                    family_name = EXCLUDED.family_name,
+                    groups = EXCLUDED.groups,
+                    last_login = EXCLUDED.last_login,
+                    login_count = app_users.login_count + 1""",
+                (
+                    user_id,
+                    display_name,
+                    email,
+                    given_name,
+                    family_name,
+                    groups,
+                    now,
+                    now,
+                ),
+            )
+        else:
+            existing = conn.fetchone(
+                "SELECT * FROM app_users WHERE user_id = ?", (user_id,)
+            )
+            if existing:
+                conn.execute(
+                    """UPDATE app_users SET display_name=?, email=?, given_name=?, family_name=?,
+                       groups=?, last_login=?, login_count=login_count+1 WHERE user_id=?""",
+                    (
+                        display_name,
+                        email,
+                        given_name,
+                        family_name,
+                        groups,
+                        now,
+                        user_id,
+                    ),
+                )
+            else:
+                conn.execute(
+                    """INSERT INTO app_users (user_id, display_name, email, given_name, family_name, groups, first_login, last_login, login_count, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 'active')""",
+                    (
+                        user_id,
+                        display_name,
+                        email,
+                        given_name,
+                        family_name,
+                        groups,
+                        now,
+                        now,
+                    ),
+                )
+
+
+def list_app_users() -> list[dict]:
+    """Return all registered app users."""
+    with get_connection() as conn:
+        return conn.fetchall("SELECT * FROM app_users ORDER BY last_login DESC")
+
+
+def get_app_user(user_id: str) -> Optional[dict]:
+    """Get a specific app user."""
+    with get_connection() as conn:
+        return conn.fetchone("SELECT * FROM app_users WHERE user_id = ?", (user_id,))
 
 
 # Initialize on import

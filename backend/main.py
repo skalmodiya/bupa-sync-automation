@@ -12,6 +12,7 @@ from routes.sync_status import router as sync_router
 from routes.audit import router as audit_router
 from routes.auth_routes import router as auth_router
 from routes.authorization import router as authz_router
+from routes.users import router as users_router
 
 
 @asynccontextmanager
@@ -51,6 +52,7 @@ app.include_router(sync_router, prefix="/api/sync", tags=["sync"])
 app.include_router(audit_router, prefix="/api/audit", tags=["audit"])
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(authz_router, prefix="/api/authz", tags=["authorization"])
+app.include_router(users_router, prefix="/api/users", tags=["users"])
 
 
 @app.get("/health")
