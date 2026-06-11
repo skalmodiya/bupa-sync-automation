@@ -113,14 +113,14 @@ docker-compose down -v
 
 Once all services are healthy:
 
-| Service       | URL                          |
-|---------------|------------------------------|
-| Dashboard     | http://localhost:3001         |
-| Backend API   | http://localhost:8081         |
-| n8n Editor    | http://localhost:5678         |
-| Mock S/4HANA  | http://localhost:8090         |
-| Mailpit UI    | http://localhost:8025         |
-| AI Agent      | http://localhost:5000         |
+| Service       | URL                          | Credentials                          |
+|---------------|------------------------------|--------------------------------------|
+| Dashboard     | http://localhost:3001         | —                                    |
+| Backend API   | http://localhost:8081         | —                                    |
+| n8n Editor    | http://localhost:5678         | admin@bupa-sync.local / BupaSync2024! |
+| Mock S/4HANA  | http://localhost:8090         | —                                    |
+| Mailpit UI    | http://localhost:8025         | —                                    |
+| AI Agent      | http://localhost:5000         | —                                    |
 
 ### Native (Development)
 

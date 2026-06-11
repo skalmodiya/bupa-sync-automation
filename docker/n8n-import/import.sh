@@ -1,7 +1,7 @@
 #!/bin/sh
-# Wait for n8n to be fully ready, then import workflows via CLI
-# This script retries until the n8n internal API is responsive,
-# not just the web UI, to handle first-login initialization delays.
+# Wait for n8n to be fully ready (including owner setup), then import workflows.
+# n8n discards workflow imports if no owner account exists yet, so we must
+# wait until the owner is configured before importing.
 
 echo "=== BUPA Sync n8n Workflow Importer ==="
 
@@ -22,8 +22,25 @@ until wget -qO /dev/null http://n8n:5678/ 2>/dev/null; do
 done
 echo "n8n web UI is up."
 
-# Phase 2: Wait for n8n CLI/database to be ready by attempting a dry-run list
-echo "Phase 2: Waiting for n8n database/CLI to be ready..."
+# Phase 2: Wait for n8n owner setup to be complete.
+# n8n returns a redirect to /setup when no owner exists.
+# Once owner is configured (via env vars or manual setup), /healthz returns 200.
+echo "Phase 2: Waiting for n8n owner setup to complete..."
+attempt=0
+until wget -qO /dev/null http://n8n:5678/healthz 2>/dev/null; do
+  attempt=$((attempt + 1))
+  if [ $attempt -ge $MAX_RETRIES ]; then
+    echo "WARNING: n8n /healthz not responding after $MAX_RETRIES attempts."
+    echo "Proceeding with import anyway..."
+    break
+  fi
+  echo "  n8n owner not set up yet, retrying ($attempt/$MAX_RETRIES)..."
+  sleep $RETRY_INTERVAL
+done
+echo "n8n is fully initialized."
+
+# Phase 3: Wait for n8n CLI/database to be ready
+echo "Phase 3: Verifying n8n CLI/database..."
 attempt=0
 until n8n list:workflow > /dev/null 2>&1; do
   attempt=$((attempt + 1))
@@ -36,10 +53,10 @@ until n8n list:workflow > /dev/null 2>&1; do
 done
 echo "n8n CLI/database is ready."
 
-# Phase 3: Import each workflow with per-file retries
+# Phase 4: Import each workflow with per-file retries
 IMPORT_RETRIES=5
 echo ""
-echo "Phase 3: Importing workflows..."
+echo "Phase 4: Importing workflows..."
 
 imported=0
 failed=0
@@ -68,9 +85,15 @@ for f in /workflows/*.json; do
   fi
 done
 
+# Phase 5: Verify imports
+echo ""
+echo "Verifying imported workflows..."
+n8n list:workflow 2>&1 || true
+
 echo ""
 echo "=== Import complete: $imported succeeded, $failed failed ==="
 echo "Access n8n at http://localhost:5678"
+echo "Default credentials: admin@bupa-sync.local / BupaSync2024!"
 echo "Workflows are ready for activation via the n8n UI."
 
 if [ $failed -gt 0 ]; then

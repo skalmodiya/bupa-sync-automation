@@ -96,10 +96,13 @@ services:
       - WEBHOOK_URL=http://n8n:5678
       - N8N_SECURE_COOKIE=false
       - N8N_RUNNERS_ENABLED=true
+      # Pre-configure owner to skip setup wizard (required for workflow import)
+      - N8N_DEFAULT_USER_EMAIL=admin@bupa-sync.local
+      - N8N_DEFAULT_USER_PASSWORD=BupaSync2024!
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:5678/ || exit 1"]
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:5678/healthz || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
