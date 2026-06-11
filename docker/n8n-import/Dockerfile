@@ -5,7 +5,7 @@ USER root
 WORKDIR /workflows
 COPY workflows/ /workflows/
 COPY import.sh /import.sh
-RUN chmod +x /import.sh
+RUN sed -i 's/\r$//' /import.sh && chmod +x /import.sh
 
 USER node
 ENTRYPOINT ["/import.sh"]
