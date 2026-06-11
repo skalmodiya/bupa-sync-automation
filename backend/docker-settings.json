@@ -30,8 +30,7 @@
   "auth": {
     "ias_url": "",
     "client_id": "",
-    "client_secret": "",
-    "redirect_uri": "http://localhost:3001/api/auth/callback"
+    "client_secret": ""
   },
   "ngrok": {
     "enabled": false,

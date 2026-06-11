@@ -51,7 +51,6 @@ class AuthConfig(BaseModel):
     ias_url: str = ""  # e.g. https://mytenant.accounts.ondemand.com
     client_id: str = ""
     client_secret: str = ""
-    redirect_uri: str = "http://localhost:3001/auth/callback"
 
 
 class NgrokConfig(BaseModel):

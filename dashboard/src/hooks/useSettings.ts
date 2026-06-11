@@ -34,7 +34,6 @@ const defaultSettings: Settings = {
     iasUrl: '',
     clientId: '',
     clientSecret: '',
-    redirectUri: 'http://localhost:3001/auth/callback',
   },
 };
 
@@ -72,7 +71,6 @@ function fromBackend(data: any): Settings {
       iasUrl: data?.auth?.ias_url || data?.auth?.iasUrl || '',
       clientId: data?.auth?.client_id || data?.auth?.clientId || '',
       clientSecret: data?.auth?.client_secret || data?.auth?.clientSecret || '',
-      redirectUri: data?.auth?.redirect_uri || data?.auth?.redirectUri || 'http://localhost:3001/auth/callback',
     },
   };
 }
@@ -112,7 +110,6 @@ function toBackend(settings: Settings): any {
       ias_url: settings.auth.iasUrl,
       client_id: settings.auth.clientId,
       client_secret: settings.auth.clientSecret,
-      redirect_uri: settings.auth.redirectUri,
     },
   };
 }

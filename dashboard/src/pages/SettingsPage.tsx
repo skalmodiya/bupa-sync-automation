@@ -677,15 +677,9 @@ export function SettingsPage() {
             onChange={(e) => update('auth', { clientSecret: e.target.value })}
             placeholder="••••••••"
           />
-          <Input
-            label="Redirect URI"
-            value={settings.auth.redirectUri}
-            onChange={(e) => update('auth', { redirectUri: e.target.value })}
-            placeholder="http://localhost:3001/auth/callback"
-          />
           <div className="rounded-md bg-muted p-3 text-xs text-muted-foreground space-y-1">
             <p><strong>Note:</strong> Authentication is optional. If IAS is not configured, the dashboard works in anonymous mode.</p>
-            <p>When configured, users will be redirected to IAS for login. The redirect URI must be registered in your IAS application settings.</p>
+            <p>When configured, users will be redirected to IAS for login. The redirect URI is derived automatically from the request origin (no manual configuration needed). Register all access URLs in your IAS application settings (e.g. <code>http://localhost:3001/api/auth/callback</code>, <code>http://your-ip:3001/api/auth/callback</code>).</p>
           </div>
         </div>
       </Card>

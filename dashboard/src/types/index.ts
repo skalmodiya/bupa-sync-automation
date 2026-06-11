@@ -30,7 +30,6 @@ export interface Settings {
     iasUrl: string;
     clientId: string;
     clientSecret: string;
-    redirectUri: string;
   };
 }
 
