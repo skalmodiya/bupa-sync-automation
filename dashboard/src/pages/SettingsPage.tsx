@@ -122,6 +122,7 @@ export function SettingsPage() {
       const data = res.data as any;
       if (data.workflows) {
         setN8nWorkflows(data.workflows);
+        setTestMessages((s) => ({ ...s, n8nWorkflows: '' }));
       } else if (data.error) {
         setTestMessages((s) => ({ ...s, n8nWorkflows: data.error }));
       }
@@ -138,6 +139,7 @@ export function SettingsPage() {
       const data = res.data as any;
       if (data.models) {
         setLlmModels(data.models);
+        setTestMessages((s) => ({ ...s, llmModels: '' }));
       } else if (data.error) {
         setTestMessages((s) => ({ ...s, llmModels: data.error }));
       }
@@ -357,8 +359,12 @@ export function SettingsPage() {
                   const res = await fetchLlmModels(updatedSettings);
                   if (res.ok && res.data) {
                     const data = res.data as any;
-                    if (data.models) setLlmModels(data.models);
-                    else setTestMessages((s) => ({ ...s, llmModels: data.detail || data.error || 'Failed' }));
+                    if (data.models) {
+                      setLlmModels(data.models);
+                      setTestMessages((s) => ({ ...s, llmModels: '' }));
+                    } else {
+                      setTestMessages((s) => ({ ...s, llmModels: data.detail || data.error || 'Failed' }));
+                    }
                   } else {
                     setTestMessages((s) => ({ ...s, llmModels: res.error || 'Failed to fetch models' }));
                   }
@@ -430,8 +436,12 @@ export function SettingsPage() {
                   const res = await fetchN8nWorkflows(updatedSettings);
                   if (res.ok && res.data) {
                     const data = res.data as any;
-                    if (data.workflows) setN8nWorkflows(data.workflows);
-                    else setTestMessages((s) => ({ ...s, n8nWorkflows: data.detail || data.error || 'Failed' }));
+                    if (data.workflows) {
+                      setN8nWorkflows(data.workflows);
+                      setTestMessages((s) => ({ ...s, n8nWorkflows: '' }));
+                    } else {
+                      setTestMessages((s) => ({ ...s, n8nWorkflows: data.detail || data.error || 'Failed' }));
+                    }
                   } else {
                     setTestMessages((s) => ({ ...s, n8nWorkflows: res.error || 'Failed to fetch workflows' }));
                   }
