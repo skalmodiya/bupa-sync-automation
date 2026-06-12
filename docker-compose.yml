@@ -61,9 +61,20 @@ services:
   ngrok:
     image: ngrok/ngrok:latest
     profiles: ["ngrok"]
-    command: http --domain=${NGROK_DOMAIN:-localhost} dashboard:80 --log=stdout
+    # When NGROK_DOMAIN is set, use a fixed URL (paid plan required).
+    # When empty (free plan), ngrok assigns a random ephemeral HTTPS URL.
+    entrypoint: /bin/sh
+    command:
+      - "-c"
+      - |
+        if [ -n "$$NGROK_DOMAIN" ]; then
+          ngrok http --url=$$NGROK_DOMAIN dashboard:80 --log=stdout
+        else
+          ngrok http dashboard:80 --log=stdout
+        fi
     environment:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN:-}
+      - NGROK_DOMAIN=${NGROK_DOMAIN:-}
     ports:
       - "4040:4040"
     depends_on:
