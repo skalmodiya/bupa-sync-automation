@@ -73,13 +73,21 @@ async def test_llm_connection(
     request: Request, payload: Settings | None = None
 ) -> dict:
     """Test LLM connection by calling the /models endpoint."""
+    import os
+
     user = get_optional_user(request)
     saved = load_settings()
     settings = payload or saved
     # Resolve masked API key: if payload has a masked key, use the saved real one
     if settings.llm.api_key and settings.llm.api_key.startswith("*"):
         settings.llm.api_key = saved.llm.api_key
-    url = settings.llm.base_url.rstrip("/") + "/models"
+    llm_base = settings.llm.base_url.rstrip("/")
+    # In Docker, the browser sends localhost:6655 but the backend needs host.docker.internal
+    if os.environ.get("DEPLOYMENT_MODE") == "docker":
+        llm_base = llm_base.replace(
+            "http://localhost:6655", "http://host.docker.internal:6655"
+        )
+    url = llm_base + "/models"
     headers: dict[str, str] = {}
     if settings.llm.api_key and not settings.llm.api_key.startswith("*"):
         headers["Authorization"] = f"Bearer {settings.llm.api_key}"
@@ -212,9 +220,15 @@ async def test_n8n_connection(
 @router.post("/test-s4")
 async def test_s4_connection(request: Request, payload: Settings | None = None) -> dict:
     """Test mock S/4HANA connection."""
+    import os
+
     user = get_optional_user(request)
     settings = payload or load_settings()
-    url = settings.mock_s4.url.rstrip("/") + "/api/pa0000"
+    s4_url = settings.mock_s4.url.rstrip("/")
+    # In Docker, the browser sends localhost:8090 but the backend needs the service name
+    if os.environ.get("DEPLOYMENT_MODE") == "docker":
+        s4_url = s4_url.replace("http://localhost:8090", "http://mock-s4hana:8090")
+    url = s4_url + "/api/pa0000"
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             resp = await client.get(url)
